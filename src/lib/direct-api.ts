@@ -108,6 +108,35 @@ function mapThrown(error: unknown): string {
   return "network";
 }
 
+/**
+ * Browsers deliberately hide WHY a fetch failed (CORS vs DNS vs TCP all look
+ * like a bare TypeError). A `no-cors` probe is the discriminator: it sends the
+ * request anyway and succeeds for ANY HTTP response status (opaque), failing
+ * ONLY when the host genuinely can't be reached (DNS / TCP / TLS dead).
+ *   main fetch fails + probe succeeds → CORS policy is the blocker
+ *   main fetch fails + probe fails    → host unreachable (ERR_NAME_NOT_RESOLVED…)
+ */
+async function probeReachable(baseUrl: string): Promise<boolean> {
+  try {
+    const base = normalizeBrowserBase(baseUrl);
+    await fetch(base, {
+      method: "GET",
+      mode: "no-cors",
+      cache: "no-store",
+      signal: AbortSignal.timeout(8000),
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function refineNetworkError(baseUrl: string, error: string): Promise<string> {
+  if (error !== "network") return error;
+  const reachable = await probeReachable(baseUrl);
+  return reachable ? error : "unreachable";
+}
+
 function safeDetail(text: string, apiKey: string): string | null {
   const redact = (value: string) => (apiKey ? value.split(apiKey).join("***") : value);
   try {
@@ -265,7 +294,10 @@ function fromThrow(error: unknown): string {
 export async function loadModels(baseUrl: string, apiKey: string): Promise<ModelsOk | RunErr> {
   try {
     const result = await listModelsDirect(baseUrl.trim(), apiKey.trim());
-    if (!result.ok) return { ok: false, error: arabicError(result.error, result.detail) };
+    if (!result.ok) {
+      const error = await refineNetworkError(baseUrl, result.error);
+      return { ok: false, error: arabicError(error, result.detail) };
+    }
     return { ok: true, models: result.models };
   } catch (error) {
     return { ok: false, error: fromThrow(error) };
@@ -282,7 +314,10 @@ export async function runLab(provider: ProviderConfig, input: LabInput): Promise
       "غطِّ الإعطاء المشترك والمزج في المحلول أو المحقنة.",
     ].join("\n");
     const result = await postChatDirect(base, provider.apiKey.trim(), provider.model, LAB_SYSTEM, user);
-    if (!result.ok) return { ok: false, error: arabicError(result.error, result.detail) };
+    if (!result.ok) {
+      const error = await refineNetworkError(base, result.error);
+      return { ok: false, error: arabicError(error, result.detail) };
+    }
     return { ok: true, content: result.content };
   } catch (error) {
     return { ok: false, error: fromThrow(error) };
@@ -294,7 +329,10 @@ export async function runCard(provider: ProviderConfig, input: CardInput): Promi
     const base = normalizeBrowserBase(provider.baseUrl);
     const user = `استخرج بطاقة مرجعية لهذا الدواء أو المركب:\n${oneLine(input.name)}`;
     const result = await postChatDirect(base, provider.apiKey.trim(), provider.model, CARD_SYSTEM, user);
-    if (!result.ok) return { ok: false, error: arabicError(result.error, result.detail) };
+    if (!result.ok) {
+      const error = await refineNetworkError(base, result.error);
+      return { ok: false, error: arabicError(error, result.detail) };
+    }
     return { ok: true, content: result.content };
   } catch (error) {
     return { ok: false, error: fromThrow(error) };
