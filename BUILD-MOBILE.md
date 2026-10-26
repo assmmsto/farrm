@@ -33,8 +33,9 @@
 
 ## ب) الطريق المحلي الكامل (بدون أي سحابة)
 
-المتطلبات لمرة واحدة: **Node 22+**، **JDK 17**، **Android Studio** (أو أدوات
-سطر الأوامر sdkmanager + منصة android-35).
+المتطلبات لمرة واحدة: **Node 22+**، **JDK 21** (مكتبة Capacitor 7 الأصلية
+تُبنى بمصدر Java 21)، **Android Studio** (أو أدوات سطر الأوامر sdkmanager +
+منصة android-35).
 
 ```bash
 npm install          # أول مرة فقط
