@@ -12,6 +12,7 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
   const resetProvider = usePharmacy((state) => state.resetProvider);
   const [showKey, setShowKey] = useState(false);
   const [filter, setFilter] = useState("");
+  const [manualModel, setManualModel] = useState("");
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [statusBad, setStatusBad] = useState(false);
@@ -43,6 +44,20 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
     });
     setStatusBad(false);
     setStatus(`تم الاتصال. ${modelCountLabel(result.models.length)} متاح.`);
+  }
+
+  async function approveManually() {
+    const model = manualModel.trim();
+    if (!model) return;
+    patchProvider({
+      baseUrl: provider.baseUrl.trim(),
+      apiKey: provider.apiKey.trim(),
+      model,
+      models: provider.models.includes(model) ? provider.models : [model, ...provider.models],
+      verified: true,
+    });
+    setStatusBad(false);
+    setStatus("اعتُمد المزوّد يدوياً بلا فحص. إن رفض الرد لاحقاً راجع اسم النموذج عند مزوّدك.");
   }
 
   return (
@@ -154,10 +169,34 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
                 resetProvider();
                 setStatus(null);
                 setFilter("");
+                setManualModel("");
               }}
             >
               مسح المزوّد من هذا الجهاز
             </button>
+
+            <div className="flex flex-col gap-3 rounded-xl border border-dashed border-line p-3">
+              <Field label="مزوّدك لا يملك قائمة نماذج أو يفشل الفحص؟" htmlFor="manual-model" hint="بعض البروكسيات تدعم المحادثة فقط. اكتب اسم النموذج كما يعرّفه مزوّدك واعتمد الاتصال مباشرة.">
+                <input
+                  id="manual-model"
+                  className={`${fieldClass} text-left`}
+                  dir="ltr"
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="اسم النموذج عند مزوّدك"
+                  value={manualModel}
+                  onChange={(event) => setManualModel(event.target.value)}
+                />
+              </Field>
+              <button
+                type="button"
+                className={quietBtn}
+                disabled={!manualModel.trim() || !provider.baseUrl.trim() || !provider.apiKey.trim()}
+                onClick={() => void approveManually()}
+              >
+                اعتماد المزوّد بدون فحص النماذج
+              </button>
+            </div>
           </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

@@ -13,6 +13,14 @@ const config: CapacitorConfig = {
     // on the local network (home NAS, Termux…) would be blocked as mixed content.
     allowMixedContent: true,
   },
+  plugins: {
+    CapacitorHttp: {
+      // Route fetch through the NATIVE layer inside the APK → CORS stops
+      // mattering entirely on Android (the browser-enforced CORS still applies
+      // to the standalone HTML opened in a regular browser).
+      enabled: true,
+    },
+  },
 };
 
 export default config;

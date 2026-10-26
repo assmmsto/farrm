@@ -32,9 +32,12 @@ const MAX_BODY = 1_000_000;
 /* ---------------------------------- URL ---------------------------------- */
 
 function normalizeBrowserBase(raw: string): string {
+  const trimmed = raw.trim();
+  // Forgive a missing scheme: "api.example.com/v1" → "https://api.example.com/v1"
+  const withScheme = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(trimmed) ? trimmed : `https://${trimmed}`;
   let url: URL;
   try {
-    url = new URL(raw.trim());
+    url = new URL(withScheme);
   } catch {
     throw new Error("invalid_url");
   }
