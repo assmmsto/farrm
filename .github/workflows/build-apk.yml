@@ -46,10 +46,15 @@ jobs:
       # ubuntu-latest runners ship a preinstalled Android SDK at $ANDROID_HOME,
       # so no setup action is needed (android-actions/setup-android@v3 is broken
       # against current cmdline-tools — it installs the removed "tools" package).
+      # sdkmanager is NOT on PATH on recent images → resolve it by full path.
       - name: Accept SDK licenses and ensure Android 35 platform
         run: |
-          yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          SDK_ROOT="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          [ -x "$SDKMANAGER" ] || SDKMANAGER="$(ls "$SDK_ROOT"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | head -n 1)"
+          echo "Using sdkmanager: $SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Build debug APK
         run: |
