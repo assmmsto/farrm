@@ -1,0 +1,69 @@
+name: build-apk
+
+# Runs on every push to main AND manually (Actions → build-apk → Run workflow).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # npm install (not `ci`) so a slightly stale lockfile never fails the run;
+      # it also picks up the Capacitor packages on first run.
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      # Static bundle for the WebView + the single self-contained HTML file.
+      - name: Build standalone web bundle
+        run: npm run build:standalone
+
+      # If android/ is committed (generated locally once), reuse it; otherwise scaffold.
+      - name: Scaffold Android project (if absent)
+        run: |
+          if [ -d android ]; then
+            echo "android/ already present — reusing committed project"
+          else
+            npx cap add android
+          fi
+
+      - name: Copy web bundle into Android project
+        run: npx cap sync android
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Accept SDK licenses and install Android 35 platform
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pharmacy-lab-apk
+          path: android/app/build/outputs/apk/debug/*.apk
+
+      - name: Upload single-file HTML artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pharmacy-lab-html
+          path: dist-standalone/pharmacy-lab.html
