@@ -21,6 +21,7 @@
  */
 import { arabicError } from "@/lib/messages";
 import { CARD_SYSTEM, LAB_SYSTEM } from "@/lib/prompts";
+import { httpRequest, isNativeRuntime } from "@/lib/transport";
 import type { CardInput, LabInput, ProviderConfig } from "@/lib/types";
 
 type RunOk = { ok: true; content: string };
@@ -55,41 +56,9 @@ function normalizeBrowserBase(raw: string): string {
 
 /* --------------------------------- fetch --------------------------------- */
 
-async function readLimited(response: Response, max: number): Promise<string> {
-  const declared = Number(response.headers.get("content-length") || 0);
-  if (declared > max) throw new Error("response_too_large");
-  if (!response.body) {
-    const text = await response.text();
-    if (text.length > max) throw new Error("response_too_large");
-    return text;
-  }
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.byteLength;
-    if (total > max) {
-      void reader.cancel().catch(() => undefined);
-      throw new Error("response_too_large");
-    }
-    chunks.push(value);
-  }
-  const merged = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) {
-    merged.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return new TextDecoder().decode(merged);
-}
-
-async function request(url: string, init: RequestInit): Promise<Response> {
-  return fetch(url, {
-    ...init,
-    signal: AbortSignal.timeout(init.method === "GET" ? 20_000 : 70_000),
-  });
+function limitBody(text: string, max: number): string {
+  if (text.length > max) throw new Error("response_too_large");
+  return text;
 }
 
 function statusError(status: number): string {
@@ -108,24 +77,42 @@ function mapThrown(error: unknown): string {
   return "network";
 }
 
-/**
- * Browsers deliberately hide WHY a fetch failed (CORS vs DNS vs TCP all look
- * like a bare TypeError). A `no-cors` probe is the discriminator: it sends the
- * request anyway and succeeds for ANY HTTP response status (opaque), failing
- * ONLY when the host genuinely can't be reached (DNS / TCP / TLS dead).
- *   main fetch fails + probe succeeds → CORS policy is the blocker
- *   main fetch fails + probe fails    → host unreachable (ERR_NAME_NOT_RESOLVED…)
- */
-async function probeReachable(baseUrl: string): Promise<boolean> {
+/** The page is being run straight off the disk (file://) → origin is "null". */
+function isFilePage(): boolean {
   try {
-    const base = normalizeBrowserBase(baseUrl);
-    await fetch(base, {
-      method: "GET",
-      mode: "no-cors",
-      cache: "no-store",
-      signal: AbortSignal.timeout(8000),
-    });
-    return true;
+    return typeof location !== "undefined" && location.protocol === "file:";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Browsers hide WHY a fetch failed: CORS, DNS, TCP and TLS all surface as a bare
+ * TypeError. A `no-cors` probe is the discriminator — it reaches the server for
+ * ANY response status (opaque reply) and rejects only when the host itself is
+ * unreachable. The probe targets the REAL endpoint on purpose: probing the bare
+ * base URL is useless because OpenAI-style gateways answer it (river.ai returns
+ * 200 grpc for `GET /v1`), which would fake "reachable" for every failure,
+ * including a wrong API key.
+ *   main call fails + probe succeeds → the host answered ⇒ the browser blocked
+ *                                      the response (CORS) — a browser law
+ *   main call fails + probe fails    → host unreachable (DNS/TCP/TLS)
+ */
+async function probeReachable(base: string): Promise<boolean> {
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    try {
+      await fetch(`${base}/models`, {
+        method: "GET",
+        mode: "no-cors",
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      return true;
+    } finally {
+      clearTimeout(timer);
+    }
   } catch {
     return false;
   }
@@ -133,8 +120,18 @@ async function probeReachable(baseUrl: string): Promise<boolean> {
 
 async function refineNetworkError(baseUrl: string, error: string): Promise<string> {
   if (error !== "network") return error;
-  const reachable = await probeReachable(baseUrl);
-  return reachable ? error : "unreachable";
+  // Inside the APK the transport is native and CORS does not exist; a failed
+  // call there is a genuine reachability problem, so skip the browser probe.
+  if (isNativeRuntime()) return "unreachable";
+  let base: string;
+  try {
+    base = normalizeBrowserBase(baseUrl);
+  } catch {
+    return error;
+  }
+  const reachable = await probeReachable(base);
+  if (!reachable) return "unreachable";
+  return isFilePage() ? "browser_blocked_file" : "browser_blocked";
 }
 
 function safeDetail(text: string, apiKey: string): string | null {
@@ -215,12 +212,14 @@ async function listModelsDirect(
 ): Promise<{ ok: true; models: string[] } | { ok: false; error: string; detail: string | null }> {
   try {
     const base = normalizeBrowserBase(baseUrl);
-    const response = await request(`${base}/models`, {
+    const response = await httpRequest({
+      url: `${base}/models`,
       method: "GET",
       headers: { Accept: "application/json", Authorization: `Bearer ${apiKey}` },
+      timeoutMs: 25_000,
     });
-    const text = await readLimited(response, MAX_BODY);
-    if (!response.ok) {
+    const text = limitBody(response.text, MAX_BODY);
+    if (response.status < 200 || response.status >= 300) {
       return { ok: false, error: statusError(response.status), detail: safeDetail(text, apiKey) };
     }
     let parsed: unknown = null;
@@ -256,7 +255,8 @@ async function postChatDirect(
   ];
   let lastDetail: string | null = null;
   for (let index = 0; index < attempts.length; index += 1) {
-    const response = await request(`${base}/chat/completions`, {
+    const response = await httpRequest({
+      url: `${base}/chat/completions`,
       method: "POST",
       headers: {
         Accept: "application/json",
@@ -264,9 +264,10 @@ async function postChatDirect(
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(attempts[index]),
+      timeoutMs: 70_000,
     });
-    const text = await readLimited(response, MAX_BODY);
-    if (response.ok) {
+    const text = limitBody(response.text, MAX_BODY);
+    if (response.status >= 200 && response.status < 300) {
       const content = extractContent(text).slice(0, 100_000);
       if (!content.trim()) return { ok: false, error: "empty", detail: null };
       return { ok: true, content };
