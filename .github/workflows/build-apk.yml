@@ -38,14 +38,15 @@ jobs:
       - name: Copy web bundle into Android project
         run: npx cap sync android
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
 
-      - uses: android-actions/setup-android@v3
-
-      - name: Accept SDK licenses and install Android 35 platform
+      # ubuntu-latest runners ship a preinstalled Android SDK at $ANDROID_HOME,
+      # so no setup action is needed (android-actions/setup-android@v3 is broken
+      # against current cmdline-tools — it installs the removed "tools" package).
+      - name: Accept SDK licenses and ensure Android 35 platform
         run: |
           yes | sdkmanager --licenses > /dev/null || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
