@@ -1,0 +1,38 @@
+{
+  "url": "http://127.0.0.1:8081/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "مختبر الصيدلي",
+      "hasCanvas": false,
+      "bodyTextLen": 359,
+      "bodyTextHash": "e21c754d24727fd3079553288a59a1c8e9b78d2c79235a88e3b51d0abd262449",
+      "bodyTextPrefix": "مختبر الصيدلي ادمج المركبات واقرأ النتيجة مع تقرير كامل، أو افتح",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "مختبر الصيدلي",
+      "hasCanvas": false,
+      "bodyTextLen": 359,
+      "bodyTextHash": "e21c754d24727fd3079553288a59a1c8e9b78d2c79235a88e3b51d0abd262449",
+      "bodyTextPrefix": "مختبر الصيدلي ادمج المركبات واقرأ النتيجة مع تقرير كامل، أو افتح",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-built-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-built.json",
+  "divergesFromBaseline": false,
+  "baselineReasons": []
+}

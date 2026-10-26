@@ -1,0 +1,8 @@
+node_modules/
+dist/
+dist-standalone/
+capacitor-www/
+.output/
+.vercel/
+*.local
+.DS_Store
