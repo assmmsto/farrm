@@ -186,6 +186,7 @@ async function postChat(base: string, apiKey: string, model: string, system: str
     { role: "user", content: user },
   ];
   const attempts: Record<string, unknown>[] = [
+    { model, temperature: 0.2, max_tokens: 3500, response_format: { type: "json_object" }, messages },
     { model, temperature: 0.2, max_tokens: 3500, messages },
     { model, messages },
   ];
@@ -207,8 +208,8 @@ async function postChat(base: string, apiKey: string, model: string, system: str
       return { ok: true, content };
     }
     lastDetail = safeDetail(text, apiKey);
-    const retry = response.status === 400 && index === 0;
-    if (!retry) return { ok: false, error: statusError(response.status), detail: lastDetail };
+    const canRetry = (response.status === 400 || response.status === 422) && index < attempts.length - 1;
+    if (!canRetry) return { ok: false, error: statusError(response.status), detail: lastDetail };
   }
   return { ok: false, error: "upstream", detail: lastDetail };
 }

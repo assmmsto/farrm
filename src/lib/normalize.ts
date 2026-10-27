@@ -1,11 +1,17 @@
 export type Severity = "major" | "moderate" | "minor" | "none" | "unknown";
 
+/** How far the model trusts its own answer. */
+export type Confidence = "high" | "medium" | "low" | "unknown";
+
 export type LabReport = {
   assumption: string;
   headline: string;
   severity: Severity;
+  confidence: Confidence;
   result: string;
   sections: { title: string; body: string }[];
+  /** References the model claims it relied on (may be empty). */
+  sources: string[];
   uncertainties: string;
 };
 
@@ -141,6 +147,13 @@ export function parseSeverity(value: unknown): Severity {
   if (v.includes("متوسط")) return "moderate";
   if (v.includes("بسيط") || v.includes("طفيف")) return "minor";
   if (v.includes("لا يوجد") || v.includes("لا تداخل")) return "none";
+  // Arabic scales the prompt never named explicitly: models freely answer
+  // «عالية / متوسطة / منخفضة» for a severity. Treating those as "unknown"
+  // hid a real HIGH-risk verdict behind a neutral badge — a safety bug.
+  if (v.includes("عالي") || v.includes("عالية") || v.includes("مرتفع")) return "major";
+  if (v.includes("متوسط") || v.includes("متوسطة") || v.includes("معتدل")) return "moderate";
+  if (v.includes("منخفض") || v.includes("منخفضة") || v.includes("ضعيف")) return "minor";
+  if (v.includes("معدوم") || v.includes("لا أثر")) return "none";
   return "unknown";
 }
 
@@ -234,6 +247,15 @@ function parseInteractions(value: unknown): DrugInteraction[] {
   return out;
 }
 
+export function parseConfidence(value: unknown): Confidence {
+  if (typeof value !== "string") return "unknown";
+  const v = value.trim().toLowerCase();
+  if (v === "high" || v.includes("عالية") || v.includes("مرتفع")) return "high";
+  if (v === "medium" || v.includes("متوسط")) return "medium";
+  if (v === "low" || v.includes("منخفض") || v.includes("ضعيف")) return "low";
+  return "unknown";
+}
+
 export function parseLab(content: string): LabReport | null {
   const rec = asRecord(parseJsonLoose(content));
   if (!rec) return null;
@@ -257,8 +279,10 @@ export function parseLab(content: string): LabReport | null {
     assumption: asString(rec.assumption, 500),
     headline: headline || "نتيجة التجربة",
     severity: parseSeverity(rec.severity),
+    confidence: parseConfidence(rec.confidence),
     result: result || headline,
     sections,
+    sources: asList(rec.sources, 8),
     uncertainties: asString(rec.uncertainties, 2000),
   };
 }

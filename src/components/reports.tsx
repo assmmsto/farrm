@@ -5,6 +5,7 @@ import {
   formatNum,
   parseWeight,
   type CardReport,
+  type Confidence,
   type Dosing,
   type LabReport,
   type Severity,
@@ -63,11 +64,30 @@ export function LabReportView({
       <header className="flex flex-col gap-3 bg-herb-soft px-4 py-4 sm:px-5">
         <div className="flex flex-wrap items-center gap-2">
           <SeverityBadge severity={report.severity} />
-          <span className="text-sm font-medium text-herb">النتيجة</span>
+          {confidenceLabel(report.confidence) ? (
+            <span className="rounded-full bg-card/70 px-3 py-1 text-xs font-medium text-ink">
+              ثقة النموذج: {confidenceLabel(report.confidence)}
+            </span>
+          ) : null}
+          {report.sources.length > 0 ? (
+            <span className="rounded-full bg-card/70 px-3 py-1 text-xs font-medium text-ink">
+              عن {report.sources.length} مرجع
+            </span>
+          ) : (
+            <span className="rounded-full bg-card/70 px-3 py-1 text-xs font-medium text-danger">
+              بلا مرجع معلن
+            </span>
+          )}
         </div>
         <h2 className="text-2xl font-semibold leading-snug text-ink">{report.headline}</h2>
         <p className="text-sm text-muted">{compounds.join(" + ")}</p>
       </header>
+      {report.severity === "unknown" ? (
+        <p className="border-y border-line bg-paper-deep px-4 py-3 text-sm text-pretty text-ink">
+          <span className="font-semibold">هذا النموذج لم يحسم الشدة. </span>
+          «غير محسوم» ليست درجة أمان — راجع المرجع المعتمد قبل أي قرار.
+        </p>
+      ) : null}
       <div className="flex flex-col gap-4 px-4 py-4 sm:px-5">
         <Assumption text={report.assumption} />
         <p className="text-base text-pretty text-ink">{report.result}</p>
@@ -88,6 +108,12 @@ export function LabReportView({
             ))}
           </ol>
         )}
+        {report.sources.length > 0 ? (
+          <div className="rounded-xl bg-paper-deep px-3 py-3">
+            <span className="text-sm font-semibold">المراجع المعلنة: </span>
+            <span className="text-sm text-ink">{report.sources.join(" · ")}</span>
+          </div>
+        ) : null}
         {report.uncertainties ? (
           <p className="rounded-xl bg-brass-soft px-3 py-3 text-sm text-pretty text-ink">
             <span className="font-semibold">ما لم يُحسم: </span>
@@ -98,6 +124,13 @@ export function LabReportView({
       </div>
     </article>
   );
+}
+
+function confidenceLabel(confidence: Confidence): string {
+  if (confidence === "high") return "عالية";
+  if (confidence === "medium") return "متوسطة";
+  if (confidence === "low") return "منخفضة";
+  return "";
 }
 
 function Block({ title, children }: { title: string; children: ReactNode }) {
