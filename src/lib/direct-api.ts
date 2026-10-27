@@ -20,7 +20,7 @@
  *   Authorization header on cross-origin redirects.
  */
 import { arabicError } from "@/lib/messages";
-import { CARD_SYSTEM, LAB_SYSTEM } from "@/lib/prompts";
+import { CARD_SYSTEM, LAB_SYSTEM, SAFETY_RULES } from "@/lib/prompts";
 import { httpRequest, isNativeRuntime } from "@/lib/transport";
 import type { CardInput, LabInput, ProviderConfig } from "@/lib/types";
 
@@ -315,12 +315,21 @@ export async function runLab(provider: ProviderConfig, input: LabInput): Promise
   try {
     const base = normalizeBrowserBase(provider.baseUrl);
     const user = [
-      "جرّب دمج هذه المركبات:",
+      "جرّب دمج هذه المواد/الأدوية:",
       ...input.compounds.map((compound, index) => `${index + 1}. ${oneLine(compound)}`),
       input.note.trim() ? `ملاحظة الصيدلي: ${oneLine(input.note)}` : "ملاحظة الصيدلي: لا يوجد",
-      "غطِّ الإعطاء المشترك والمزج في المحلول أو المحقنة.",
+      "غطِّ المحورين معاً وافصل بينهما صراحة:",
+      "أ) المزج في وعاء/محلول/محقنة (توافق كيميائي-فيزيائي مرئي).",
+      "ب) إعطاؤهما للمريض معاً أو بالتتابع (تفاعل دوائي داخل الجسم، وتضاعف الآثار الخطرة).",
+      "إن كان المقصود إعطاء مريض، فالخطر الجسدي هو الأساس — ولا تستنتج الأمان من غياب تفاعل في الوعاء.",
     ].join("\n");
-    const result = await postChatDirect(base, provider.apiKey.trim(), provider.model, LAB_SYSTEM, user);
+    const result = await postChatDirect(
+      base,
+      provider.apiKey.trim(),
+      provider.model,
+      LAB_SYSTEM + SAFETY_RULES,
+      user,
+    );
     if (!result.ok) {
       const error = await refineNetworkError(base, result.error);
       return { ok: false, error: arabicError(error, result.detail) };

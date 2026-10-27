@@ -58,7 +58,7 @@ for (const viewport of viewports) {
   await page.screenshot({ path: screenshot, fullPage: true });
 
   const styledOk =
-    styles.bodyBackground === "rgb(243, 239, 228)" &&
+    styles.bodyBackground === "rgb(247, 242, 230)" &&
     styles.bodyFont.includes("IBM Plex Sans Arabic") &&
     styles.tabsCount === 3 &&
     styles.inputsCount >= 2;

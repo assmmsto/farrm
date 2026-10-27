@@ -88,6 +88,13 @@ export function LabReportView({
           «غير محسوم» ليست درجة أمان — راجع المرجع المعتمد قبل أي قرار.
         </p>
       ) : null}
+      {unverifiedSafety(report) ? (
+        <p className="border-y border-line bg-danger-soft px-4 py-3 text-sm text-pretty text-ink">
+          <span className="font-semibold">تحذير: تطمين غير مُثبت. </span>
+          هذا الجواب يقول إنه لا خطر، لكنه لم يذكر أي مرجع. غياب المعلومة ليس دليل سلامة — تحقق من
+          Lexicomp أو Micromedex أو نشرة الدواء قبل الجمع.
+        </p>
+      ) : null}
       <div className="flex flex-col gap-4 px-4 py-4 sm:px-5">
         <Assumption text={report.assumption} />
         <p className="text-base text-pretty text-ink">{report.result}</p>
@@ -131,6 +138,18 @@ function confidenceLabel(confidence: Confidence): string {
   if (confidence === "medium") return "متوسطة";
   if (confidence === "low") return "منخفضة";
   return "";
+}
+
+/**
+ * A "nothing happens / no risk" verdict with no declared reference is the exact
+ * failure that reached a pharmacist in the field (two drugs called harmless).
+ * Such a claim is never shown as plain reassurance.
+ */
+function unverifiedSafety(report: LabReport): boolean {
+  if (report.sources.length > 0) return false;
+  if (report.severity !== "none" && report.severity !== "minor") return false;
+  const blob = [report.headline, report.result, ...report.sections.map((s) => s.body)].join(" ");
+  return /لا خطر|لا يؤثر|آمن|لا تداخل|لا ضرر|nothing|no risk|safe/i.test(blob);
 }
 
 function Block({ title, children }: { title: string; children: ReactNode }) {

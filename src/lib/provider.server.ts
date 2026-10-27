@@ -1,5 +1,5 @@
 import { lookup } from "node:dns/promises";
-import { CARD_SYSTEM, LAB_SYSTEM } from "@/lib/prompts";
+import { CARD_SYSTEM, LAB_SYSTEM, SAFETY_RULES } from "@/lib/prompts";
 import { isBlockedHostname, isIpLiteral, isPrivateIp, normalizeBase } from "@/lib/provider-guard";
 
 export type ModelsResult =
@@ -231,13 +231,16 @@ export async function askUpstream(input: {
     const user =
       input.task.kind === "lab"
         ? [
-            "جرّب دمج هذه المركبات:",
+            "جرّب دمج هذه المواد/الأدوية:",
             ...input.task.compounds.map((compound, index) => `${index + 1}. ${oneLine(compound)}`),
             input.task.note?.trim() ? `ملاحظة الصيدلي: ${oneLine(input.task.note)}` : "ملاحظة الصيدلي: لا يوجد",
-            "غطِّ الإعطاء المشترك والمزج في المحلول أو المحقنة.",
+            "غطِّ المحورين معاً وافصل بينهما صراحة:",
+            "أ) المزج في وعاء/محلول/محقنة (توافق كيميائي-فيزيائي مرئي).",
+            "ب) إعطاؤهما للمريض معاً أو بالتتابع (تفاعل دوائي داخل الجسم، وتضاعف الآثار الخطرة).",
+            "إن كان المقصود إعطاء مريض، فالخطر الجسدي هو الأساس — ولا تستنتج الأمان من غياب تفاعل في الوعاء.",
           ].join("\n")
         : `استخرج بطاقة مرجعية لهذا الدواء أو المركب:\n${oneLine(input.task.name)}`;
-    const system = input.task.kind === "lab" ? LAB_SYSTEM : CARD_SYSTEM;
+    const system = input.task.kind === "lab" ? LAB_SYSTEM + SAFETY_RULES : CARD_SYSTEM;
     return await postChat(base, input.apiKey, input.model, system, user);
   } catch (error) {
     return { ok: false, error: mapThrown(error), detail: null };
