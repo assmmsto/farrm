@@ -145,7 +145,7 @@ export function LabPanel({ seed, onNeedSettings }: { seed: HistoryItem | null; o
                 className={`${fieldClass} min-w-0 flex-1`}
                 dir="auto"
                 aria-label={`المادة ${index + 1}`}
-                placeholder={index === 0 ? "المادة أو الدواء" : index === 1 ? "المادة الثانية" : "مادة أخرى"}
+                placeholder={index === 0 ? "المادة أو الدواء" : "المادة الثانية"}
                 value={item.name}
                 autoComplete="off"
                 spellCheck={false}
