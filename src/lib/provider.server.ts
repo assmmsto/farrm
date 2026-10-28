@@ -1,6 +1,8 @@
 import { lookup } from "node:dns/promises";
 import { CARD_SYSTEM, LAB_SYSTEM, SAFETY_RULES } from "@/lib/prompts";
+import { buildLabPrompt } from "@/lib/lab-prompt";
 import { isBlockedHostname, isIpLiteral, isPrivateIp, normalizeBase } from "@/lib/provider-guard";
+import type { LabInput } from "@/lib/types";
 
 export type ModelsResult =
   | { ok: true; models: string[] }
@@ -222,23 +224,13 @@ export async function askUpstream(input: {
   baseUrl: string;
   apiKey: string;
   model: string;
-  task:
-    | { kind: "lab"; compounds: string[]; note?: string }
-    | { kind: "card"; name: string };
+  task: ({ kind: "lab" } & LabInput) | { kind: "card"; name: string };
 }): Promise<AskResult> {
   try {
     const base = normalizeBase(input.baseUrl);
     const user =
       input.task.kind === "lab"
-        ? [
-            "جرّب دمج هذه المواد/الأدوية:",
-            ...input.task.compounds.map((compound, index) => `${index + 1}. ${oneLine(compound)}`),
-            input.task.note?.trim() ? `ملاحظة الصيدلي: ${oneLine(input.task.note)}` : "ملاحظة الصيدلي: لا يوجد",
-            "غطِّ المحورين معاً وافصل بينهما صراحة:",
-            "أ) المزج في وعاء/محلول/محقنة (توافق كيميائي-فيزيائي مرئي).",
-            "ب) إعطاؤهما للمريض معاً أو بالتتابع (تفاعل دوائي داخل الجسم، وتضاعف الآثار الخطرة).",
-            "إن كان المقصود إعطاء مريض، فالخطر الجسدي هو الأساس — ولا تستنتج الأمان من غياب تفاعل في الوعاء.",
-          ].join("\n")
+        ? buildLabPrompt(input.task)
         : `استخرج بطاقة مرجعية لهذا الدواء أو المركب:\n${oneLine(input.task.name)}`;
     const system = input.task.kind === "lab" ? LAB_SYSTEM + SAFETY_RULES : CARD_SYSTEM;
     return await postChat(base, input.apiKey, input.model, system, user);

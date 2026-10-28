@@ -169,7 +169,9 @@ async function configure(page, url, key) {
 }
 
 async function errorText(page) {
-  const danger = page.locator(".text-danger").first();
+  // The provider status line has a stable id; `.text-danger` alone also matches
+  // the required-field asterisks in the patient form.
+  const danger = page.locator("#provider-status");
   await danger.waitFor({ timeout: 30000 });
   return (await danger.innerText()).trim();
 }
@@ -212,9 +214,14 @@ async function errorText(page) {
   await page.getByRole("button", { name: "فحص الاتصال وجلب النماذج" }).click();
   await page.getByText(/تم الاتصال/).first().waitFor({ timeout: 20000 });
   await page.getByRole("button", { name: "إغلاق" }).click();
-  await page.getByRole("textbox", { name: "المركب 1", exact: true }).fill("أسبرين");
-  await page.getByRole("textbox", { name: "المركب 2", exact: true }).fill("ديكلون");
-  await page.getByRole("button", { name: "أجرِ التجربة" }).click();
+  await page.getByRole("textbox", { name: "المادة 1", exact: true }).fill("هيدروكسيد الصوديوم");
+  await page.getByRole("textbox", { name: "المادة 2", exact: true }).fill("حمض الهيدروكلوريك");
+  await page.getByRole("textbox", { name: "كمية المادة 1" }).fill("500");
+  await page.getByRole("textbox", { name: "كمية المادة 2" }).fill("500");
+  await page.getByRole("textbox", { name: "المرجع أو المعيار" }).fill("Lexicomp");
+  await page.getByRole("textbox", { name: "عمر المريض" }).fill("30");
+  await page.getByRole("textbox", { name: "وزن المريض" }).fill("70");
+  await page.getByRole("button", { name: "أجرِ التحقق من الإعطاء" }).click();
   const danger = await page
     .getByText("خطر عالٍ")
     .first()

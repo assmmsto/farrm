@@ -1,4 +1,4 @@
-/**
+﻿/**
  * End-to-end functional test of the real artifact (dist-standalone/pharmacy-lab.html)
  * against a local MOCK OpenAI-compatible provider. Proves the whole chain:
  * settings save → model fetch → lab run → report render → history persist —
@@ -101,9 +101,14 @@ try {
   await page.getByRole("button", { name: "إغلاق" }).click();
 
   // 3) Run the lab with two compounds
-  await page.getByRole("textbox", { name: "المركب 1", exact: true }).fill("أسبرين");
-  await page.getByRole("textbox", { name: "المركب 2", exact: true }).fill("ديكلون");
-  await page.getByRole("button", { name: "أجرِ التجربة" }).click();
+  await page.getByRole("textbox", { name: "المادة 1", exact: true }).fill("أسبرين");
+  await page.getByRole("textbox", { name: "المادة 2", exact: true }).fill("ديكلون");
+  await page.getByRole("textbox", { name: "كمية المادة 1" }).fill("500");
+  await page.getByRole("textbox", { name: "كمية المادة 2" }).fill("500");
+  await page.getByRole("textbox", { name: "المرجع أو المعيار" }).fill("Lexicomp");
+  await page.getByRole("textbox", { name: "عمر المريض" }).fill("30");
+  await page.getByRole("textbox", { name: "وزن المريض" }).fill("70");
+  await page.getByRole("button", { name: "أجرِ التحقق من الإعطاء" }).click();
   await page.waitForSelector(`text=${LAB_REPORT.headline}`, { timeout: 15000 });
   step("lab run → report headline rendered", true);
 
@@ -112,7 +117,7 @@ try {
 
   // 4) History tab must list the run (persisted)
   await page.getByRole("tab", { name: /السجل/ }).click();
-  await page.locator("#panel-history").getByText("أسبرين + ديكلون").waitFor({ timeout: 5000 });
+  await page.locator("#panel-history").getByText(/أسبرين 500 mg \+ ديكلون 500 mg/).waitFor({ timeout: 5000 });
   step("history tab lists the run", true);
 
   // 5) localStorage persistence (reload must keep provider + history)

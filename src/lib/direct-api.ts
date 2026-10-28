@@ -21,6 +21,7 @@
  */
 import { arabicError } from "@/lib/messages";
 import { CARD_SYSTEM, LAB_SYSTEM, SAFETY_RULES } from "@/lib/prompts";
+import { buildLabPrompt } from "@/lib/lab-prompt";
 import { httpRequest, isNativeRuntime } from "@/lib/transport";
 import type { CardInput, LabInput, ProviderConfig } from "@/lib/types";
 
@@ -314,15 +315,7 @@ export async function loadModels(baseUrl: string, apiKey: string): Promise<Model
 export async function runLab(provider: ProviderConfig, input: LabInput): Promise<RunOk | RunErr> {
   try {
     const base = normalizeBrowserBase(provider.baseUrl);
-    const user = [
-      "جرّب دمج هذه المواد/الأدوية:",
-      ...input.compounds.map((compound, index) => `${index + 1}. ${oneLine(compound)}`),
-      input.note.trim() ? `ملاحظة الصيدلي: ${oneLine(input.note)}` : "ملاحظة الصيدلي: لا يوجد",
-      "غطِّ المحورين معاً وافصل بينهما صراحة:",
-      "أ) المزج في وعاء/محلول/محقنة (توافق كيميائي-فيزيائي مرئي).",
-      "ب) إعطاؤهما للمريض معاً أو بالتتابع (تفاعل دوائي داخل الجسم، وتضاعف الآثار الخطرة).",
-      "إن كان المقصود إعطاء مريض، فالخطر الجسدي هو الأساس — ولا تستنتج الأمان من غياب تفاعل في الوعاء.",
-    ].join("\n");
+    const user = buildLabPrompt(input);
     const result = await postChatDirect(
       base,
       provider.apiKey.trim(),

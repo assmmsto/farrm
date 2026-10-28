@@ -77,9 +77,14 @@ try {
   await page.getByText(/تم الاتصال/).first().waitFor({ timeout: 20000 });
   await page.getByRole("button", { name: "إغلاق" }).click();
 
-  await page.getByRole("textbox", { name: "المركب 1", exact: true }).fill("أسبرين");
-  await page.getByRole("textbox", { name: "المركب 2", exact: true }).fill("ديكلون");
-  await page.getByRole("button", { name: "أجرِ التجربة" }).click();
+  await page.getByRole("textbox", { name: "المادة 1", exact: true }).fill("أسبرين");
+  await page.getByRole("textbox", { name: "المادة 2", exact: true }).fill("ديكلون");
+  await page.getByRole("textbox", { name: "كمية المادة 1" }).fill("500");
+  await page.getByRole("textbox", { name: "كمية المادة 2" }).fill("500");
+  await page.getByRole("textbox", { name: "المرجع أو المعيار" }).fill("Lexicomp");
+  await page.getByRole("textbox", { name: "عمر المريض" }).fill("30");
+  await page.getByRole("textbox", { name: "وزن المريض" }).fill("70");
+  await page.getByRole("button", { name: "أجرِ التحقق من الإعطاء" }).click();
   await page.getByText("خطر نزف هضمي مرتفع").first().waitFor({ timeout: 20000 });
 
   // 1) Arabic severity word must resolve to a real level.

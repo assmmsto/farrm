@@ -79,9 +79,14 @@ try {
   await page.getByText(/تم الاتصال/).first().waitFor({ timeout: 20000 });
   await page.getByRole("button", { name: "إغلاق" }).click();
 
-  await page.getByRole("textbox", { name: "المركب 1", exact: true }).fill("ميترونيدازول");
-  await page.getByRole("textbox", { name: "المركب 2", exact: true }).fill("ميبندازول");
-  await page.getByRole("button", { name: "أجرِ التجربة" }).click();
+  await page.getByRole("textbox", { name: "المادة 1", exact: true }).fill("ميترونيدازول");
+  await page.getByRole("textbox", { name: "المادة 2", exact: true }).fill("ميبندازول");
+  await page.getByRole("textbox", { name: "كمية المادة 1" }).fill("500");
+  await page.getByRole("textbox", { name: "كمية المادة 2" }).fill("500");
+  await page.getByRole("textbox", { name: "المرجع أو المعيار" }).fill("Lexicomp");
+  await page.getByRole("textbox", { name: "عمر المريض" }).fill("30");
+  await page.getByRole("textbox", { name: "وزن المريض" }).fill("70");
+  await page.getByRole("button", { name: "أجرِ التحقق من الإعطاء" }).click();
   await page.getByText("لا يوجد خطر من أخذهما معاً").first().waitFor({ timeout: 20000 });
 
   const system = captured?.messages?.[0]?.content ?? "";
@@ -89,12 +94,16 @@ try {
 
   // 1) Safety rules must reach the model, verbatim in substance.
   check("system forbids absolute reassurance", system.includes("يُمنع منعاً باتاً أي تطمين مطلق"));
-  check("system separates beaker vs body", system.includes("لا يحدث شيء في الوعاء") && system.includes("تفاعل دوائي داخل الجسم"));
+  check(
+    "system forbids beaker framing and mandates patient-only",
+    system.includes("يُمنع تماماً تقييم") && system.includes("إعطاء المريض فقط"),
+  );
   check("system states absence of evidence is not safety", system.includes("غياب الدليل ليس دليل السلامة"));
 
-  // 2) The user turn must request both axes.
-  check("user message asks for beaker axis", user.includes("المزج في وعاء"));
-  check("user message asks for body axis", user.includes("إعطاؤهما للمريض"));
+  // 2) The user turn must carry dose, route and patient facts — no beaker.
+  check("user message carries doses", user.includes("ميترونيدازول — 500 mg"));
+  check("user message carries patient data", user.includes("العمر: 30") && user.includes("الوزن: 70"));
+  check("user message never asks about a beaker", !/وعاء|أنبوب/i.test(user));
 
   // 3) The reassuring, unreferenced answer must be flagged in the UI.
   const text = await page.evaluate(() => document.body.innerText);

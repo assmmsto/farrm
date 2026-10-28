@@ -13,8 +13,24 @@ const askSchema = z.object({
   task: z.discriminatedUnion("kind", [
     z.object({
       kind: z.literal("lab"),
-      compounds: z.array(z.string().trim().min(1).max(80)).min(2).max(6),
-      note: z.string().trim().max(500).optional(),
+      ingredients: z
+        .array(
+          z.object({
+            name: z.string().trim().min(1).max(80),
+            amount: z.string().trim().min(1).max(12),
+            unit: z.enum(["mg", "g", "mcg", "mL", "IU", "%"]),
+          }),
+        )
+        .min(2)
+        .max(6),
+      route: z.enum(["oral", "iv_bolus", "iv_infusion", "im", "sc", "rectal", "topical"]),
+      standard: z.string().trim().min(1).max(120),
+      patient: z.object({
+        age: z.string().trim().min(1).max(6),
+        weightKg: z.string().trim().max(8),
+        conditions: z.string().trim().max(300),
+      }),
+      note: z.string().trim().max(500).optional().default(""),
     }),
     z.object({
       kind: z.literal("card"),

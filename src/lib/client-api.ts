@@ -29,7 +29,14 @@ export async function runLab(provider: ProviderConfig, input: LabInput): Promise
         baseUrl: provider.baseUrl.trim(),
         apiKey: provider.apiKey.trim(),
         model: provider.model,
-        task: { kind: "lab", compounds: input.compounds, note: input.note },
+        task: {
+          kind: "lab",
+          ingredients: input.ingredients,
+          route: input.route,
+          standard: input.standard,
+          patient: input.patient,
+          note: input.note,
+        },
       },
     });
     if (!result.ok) return { ok: false, error: arabicError(result.error, result.detail) };

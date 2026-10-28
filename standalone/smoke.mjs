@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Render smoke test for dist-standalone/pharmacy-lab.html over file://
  * Uses the system Edge (Playwright channel "msedge") so no browser download
  * is needed. Verifies real content + clean console on desktop and mobile
@@ -58,7 +58,7 @@ for (const viewport of viewports) {
   await page.screenshot({ path: screenshot, fullPage: true });
 
   const styledOk =
-    styles.bodyBackground === "rgb(247, 242, 230)" &&
+    styles.bodyBackground === "rgb(243, 239, 228)" &&
     styles.bodyFont.includes("IBM Plex Sans Arabic") &&
     styles.tabsCount === 3 &&
     styles.inputsCount >= 2;
@@ -67,7 +67,7 @@ for (const viewport of viewports) {
     viewport: viewport.name,
     ok:
       text.includes("مختبر الصيدلي") &&
-      text.includes("طاولة المزج") &&
+      text.includes("طاولة إعطاء المريض") &&
       consoleErrors.length === 0 &&
       pageErrors.length === 0 &&
       !horizontalOverflow &&

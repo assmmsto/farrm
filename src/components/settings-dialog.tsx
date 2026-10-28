@@ -124,7 +124,15 @@ export function SettingsDialog({ open, onOpenChange }: { open: boolean; onOpenCh
               {pending ? "يفحص الاتصال…" : "فحص الاتصال وجلب النماذج"}
             </button>
 
-            {status ? <p className={`text-sm ${statusBad ? "text-danger" : "text-herb"}`}>{status}</p> : null}
+            {status ? (
+              <p
+                id="provider-status"
+                role="status"
+                className={`text-sm ${statusBad ? "text-danger" : "text-herb"}`}
+              >
+                {status}
+              </p>
+            ) : null}
 
             {provider.models.length > 0 ? (
               <div className="flex flex-col gap-3">
