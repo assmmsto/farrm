@@ -143,16 +143,29 @@ export function parseSeverity(value: unknown): Severity {
     unknown: "unknown",
   };
   if (map[v]) return map[v];
-  if (v.includes("خطر") || v.includes("شديد") || v.includes("مانع")) return "major";
-  if (v.includes("متوسط")) return "moderate";
+
+  // NEGATION FIRST. «لا خطر» and «بدون خطر» literally contain «خطر»; matching
+  // the positive word before the negation turned a reassuring answer into a
+  // red "خطر عالٍ" badge (and vice versa in other phrasings). This must be
+  // checked before any positive Arabic keyword.
+  if (/لا\s*خطر|بدون\s*خطر|لا\s*يوجد\s*خطر|غير\s*خطير|لا\s*ضرر|بدون\s*ضرر|آمن|مأمون/.test(v)) {
+    return "none";
+  }
+  if (/غير\s*محسوم|لا\s*يوجد\s*تداخل|لا\s*تداخل|مجهول|غير\s*معروف/.test(v)) {
+    return /غير\s*محسوم|مجهول|غير\s*معروف/.test(v) ? "unknown" : "none";
+  }
+
+  // «خطير» was missed entirely because only «خطر» was matched.
+  if (v.includes("خطير") || v.includes("خطر") || v.includes("شديد") || v.includes("مانع")) {
+    return "major";
+  }
   if (v.includes("بسيط") || v.includes("طفيف")) return "minor";
-  if (v.includes("لا يوجد") || v.includes("لا تداخل")) return "none";
   // Arabic scales the prompt never named explicitly: models freely answer
   // «عالية / متوسطة / منخفضة» for a severity. Treating those as "unknown"
   // hid a real HIGH-risk verdict behind a neutral badge — a safety bug.
   if (v.includes("عالي") || v.includes("عالية") || v.includes("مرتفع")) return "major";
-  if (v.includes("متوسط") || v.includes("متوسطة") || v.includes("معتدل")) return "moderate";
-  if (v.includes("منخفض") || v.includes("منخفضة") || v.includes("ضعيف")) return "minor";
+  if (v.includes("متوسط") || v.includes("معتدل")) return "moderate";
+  if (v.includes("منخفض") || v.includes("ضعيف")) return "minor";
   if (v.includes("معدوم") || v.includes("لا أثر")) return "none";
   return "unknown";
 }
