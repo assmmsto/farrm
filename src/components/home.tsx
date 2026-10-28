@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { FlaskConical, Pill, ScrollText, Settings } from "lucide-react";
-import { AboutDeveloper } from "@/components/about-developer";
 import { CardPanel } from "@/components/card-panel";
 import { HistoryPanel } from "@/components/history-panel";
 import { LabPanel } from "@/components/lab-panel";
@@ -68,7 +67,6 @@ export function Home() {
               {ready ? provider.model : "إعداد المزوّد"}
             </span>
           </button>
-          <AboutDeveloper />
         </div>
         <p className="text-xs leading-relaxed text-muted">
           مرجع مساعد للصيدلي — ليس بديلاً عن النشرة أو المرجع المعتمد.
