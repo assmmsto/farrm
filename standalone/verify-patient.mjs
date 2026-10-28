@@ -75,7 +75,7 @@ try {
   await page.getByRole("button", { name: "إغلاق" }).click();
 
   // 1) The run button must be disabled until the data is complete.
-  const runBtn = page.getByRole("button", { name: "أجرِ التحقق من الإعطاء" });
+  const runBtn = page.getByRole("button", { name: "تحقّق من الإعطاء" });
   check("run button disabled on empty form", await runBtn.isDisabled());
   const emptyText = await page.evaluate(() => document.body.innerText);
   check("empty form asks for substances", emptyText.includes("اكتب مادتين على الأقل"));
@@ -87,7 +87,7 @@ try {
   await page.getByRole("textbox", { name: "المادة 2", exact: true }).fill("ميبندازول");
   await page.waitForTimeout(200);
   const doseText = await page.evaluate(() => document.body.innerText);
-  check("missing-dose issue appears once names are entered", doseText.includes("أدخل كمية (جرعة) لكل مادة"));
+  check("missing-dose issue appears once names are entered", doseText.includes("أدخل كمية"));
   check("still disabled without doses", await runBtn.isDisabled());
 
   // 3) Complete the record.
@@ -96,12 +96,15 @@ try {
   await page.getByRole("textbox", { name: "المرجع أو المعيار" }).fill("Lexicomp");
   await page.getByRole("textbox", { name: "عمر المريض" }).fill("30");
   await page.getByRole("textbox", { name: "وزن المريض" }).fill("70");
+  // Conditions/note live behind the «حالات» toggle to keep one compact screen.
+  await page.getByRole("button", { name: "حالات", exact: true }).click();
   await page.getByRole("textbox", { name: "حالات طبية" }).fill("لا يوجد");
   await page.waitForTimeout(200);
   check("enabled once complete", await runBtn.isEnabled());
 
-  // 4) Route is selectable and required.
-  await page.getByLabel("طريق الإعطاء").selectOption("iv_bolus");
+  // 4) Route is a toggle strip (not a select window).
+  await page.getByRole("button", { name: "وريدي — بلعة", exact: true }).click();
+  check("route selected", (await page.getByRole("button", { name: "وريدي — بلعة", exact: true }).getAttribute("aria-pressed")) === "true");
 
   await runBtn.click();
   await page.getByText("جرعتان ضمن المدى المعتاد", { exact: false }).first().waitFor({ timeout: 20000 });

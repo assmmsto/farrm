@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Accuracy regression suite. Locks the three defects found in the field:
  *  1. Arabic severity words («عالية»…) must map to a real severity, never "unknown".
  *  2. The request must ask for JSON mode (response_format).
@@ -84,7 +84,7 @@ try {
   await page.getByRole("textbox", { name: "المرجع أو المعيار" }).fill("Lexicomp");
   await page.getByRole("textbox", { name: "عمر المريض" }).fill("30");
   await page.getByRole("textbox", { name: "وزن المريض" }).fill("70");
-  await page.getByRole("button", { name: "أجرِ التحقق من الإعطاء" }).click();
+  await page.getByRole("button", { name: "تحقّق من الإعطاء" }).click();
   await page.getByText("خطر نزف هضمي مرتفع").first().waitFor({ timeout: 20000 });
 
   // 1) Arabic severity word must resolve to a real level.

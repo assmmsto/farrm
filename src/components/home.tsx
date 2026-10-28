@@ -51,35 +51,34 @@ export function Home() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-5 px-4 pt-6 pb-24">
-      <header className="flex flex-col gap-4">
-        <div className="flex items-start gap-3">
-          <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-herb text-card">
-            <FlaskConical className="size-6" aria-hidden />
+    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-3 px-3 pt-3 pb-24">
+      <header className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-herb text-card">
+            <FlaskConical className="size-4.5" aria-hidden />
           </span>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-semibold leading-tight">مختبر الصيدلي</h1>
-            <p className="text-sm text-muted">ادمج المركبات واقرأ النتيجة مع تقرير كامل، أو افتح بطاقة دواء.</p>
-          </div>
+          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold leading-tight">مختبر الصيدلي</h1>
+          <button
+            type="button"
+            className="inline-flex h-9 max-w-[11rem] items-center gap-1.5 rounded-lg border border-line bg-card px-2.5 text-xs font-medium"
+            onClick={() => setSettingsOpen(true)}
+          >
+            <Settings className="size-3.5 shrink-0" aria-hidden />
+            <span className="truncate" dir="ltr">
+              {ready ? provider.model : "إعداد المزوّد"}
+            </span>
+          </button>
           <AboutDeveloper />
         </div>
-        <button type="button" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-line bg-card px-4 text-sm font-medium" onClick={() => setSettingsOpen(true)}>
-          <Settings className="size-4 shrink-0" aria-hidden />
-          <span className="truncate" dir="ltr">
-            {ready ? provider.model : "إعداد المزوّد"}
-          </span>
-        </button>
+        <p className="text-xs leading-relaxed text-muted">
+          مرجع مساعد للصيدلي — ليس بديلاً عن النشرة أو المرجع المعتمد.
+        </p>
       </header>
-
-      <p className="rounded-2xl border border-line bg-card px-4 py-3 text-sm text-pretty">
-        <span className="font-semibold">تنبيه. </span>
-        مرجع مساعد للصيدلي، وليس بديلاً عن النشرة أو المرجع المعتمد أو حكمك المهني. الجواب من النموذج الذي تختاره، وقد يخطئ.
-      </p>
 
       <div
         role="tablist"
         aria-label="أقسام المختبر"
-        className="grid grid-cols-3 gap-1 rounded-2xl bg-paper-deep p-1"
+        className="grid grid-cols-3 gap-1 rounded-xl bg-paper-deep p-1"
         onKeyDown={onTabListKeyDown}
       >
         {tabs.map((item, index) => {
@@ -97,7 +96,7 @@ export function Home() {
               aria-selected={selected}
               aria-controls={`panel-${item.id}`}
               tabIndex={selected ? 0 : -1}
-              className={`inline-flex min-h-11 items-center justify-center gap-1 rounded-xl px-2 text-sm font-medium ${selected ? "bg-card text-ink" : "text-muted"}`}
+              className={`inline-flex min-h-10 items-center justify-center gap-1 rounded-lg px-2 text-sm font-medium ${selected ? "bg-card text-ink" : "text-muted"}`}
               onClick={() => setTab(item.id)}
             >
               <Icon className="size-4 shrink-0" aria-hidden />

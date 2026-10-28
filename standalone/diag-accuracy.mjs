@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Diagnostic: shows EXACTLY what the app sends to the provider and how the
  * returned answer is parsed. Runs the real built single-file against a mock
  * that echoes the request back, so we can inspect the prompt and the parser
@@ -76,7 +76,7 @@ await page.getByRole("button", { name: "إغلاق" }).click();
   await page.getByRole("textbox", { name: "المرجع أو المعيار" }).fill("Lexicomp");
   await page.getByRole("textbox", { name: "عمر المريض" }).fill("30");
   await page.getByRole("textbox", { name: "وزن المريض" }).fill("70");
-  await page.getByRole("button", { name: "أجرِ التحقق من الإعطاء" }).click();
+  await page.getByRole("button", { name: "تحقّق من الإعطاء" }).click();
 await page.waitForTimeout(2500);
 
 const rendered = await page.evaluate(() => document.body.innerText);

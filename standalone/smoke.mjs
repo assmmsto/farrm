@@ -67,7 +67,7 @@ for (const viewport of viewports) {
     viewport: viewport.name,
     ok:
       text.includes("مختبر الصيدلي") &&
-      text.includes("طاولة إعطاء المريض") &&
+      text.includes("إعطاء المريض") &&
       consoleErrors.length === 0 &&
       pageErrors.length === 0 &&
       !horizontalOverflow &&

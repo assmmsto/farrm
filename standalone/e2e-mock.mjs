@@ -108,7 +108,7 @@ try {
   await page.getByRole("textbox", { name: "المرجع أو المعيار" }).fill("Lexicomp");
   await page.getByRole("textbox", { name: "عمر المريض" }).fill("30");
   await page.getByRole("textbox", { name: "وزن المريض" }).fill("70");
-  await page.getByRole("button", { name: "أجرِ التحقق من الإعطاء" }).click();
+  await page.getByRole("button", { name: "تحقّق من الإعطاء" }).click();
   await page.waitForSelector(`text=${LAB_REPORT.headline}`, { timeout: 15000 });
   step("lab run → report headline rendered", true);
 

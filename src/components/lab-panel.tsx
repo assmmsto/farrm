@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Plus, X } from "lucide-react";
 import { LabReportView, RawAnswer } from "@/components/reports";
-import { fieldClass, primaryBtn, quietBtn } from "@/components/ui";
+import { fieldClass, primaryBtn } from "@/components/ui";
 import { runLab } from "@/lib/client-api";
 import { arabicError } from "@/lib/messages";
 import { parseLab } from "@/lib/normalize";
@@ -32,8 +32,8 @@ const EXAMPLE: Ingredient[] = [
 
 /**
  * Every experiment here is administration to a PATIENT, never mixing in a
- * beaker. So the run is blocked until the pharmacist states the dose of every
- * ingredient, the route, the reference standard and the patient's age.
+ * beaker. The whole record stays on ONE compact screen: a single row per
+ * substance (quantity + unit inline), a route strip, and one patient line.
  */
 export function LabPanel({ seed, onNeedSettings }: { seed: HistoryItem | null; onNeedSettings: () => void }) {
   const provider = usePharmacy((state) => state.provider);
@@ -46,6 +46,7 @@ export function LabPanel({ seed, onNeedSettings }: { seed: HistoryItem | null; o
   const [standard, setStandard] = useState("");
   const [patient, setPatient] = useState<PatientContext>(() => emptyPatient());
   const [note, setNote] = useState("");
+  const [more, setMore] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shown, setShown] = useState<{ input: LabInput; content: string; model: string } | null>(null);
@@ -124,39 +125,43 @@ export function LabPanel({ seed, onNeedSettings }: { seed: HistoryItem | null; o
   const report = shown ? parseLab(shown.content) : null;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-4 rounded-2xl border border-line bg-card p-4">
-        <div>
-          <h2 className="text-lg font-semibold">طاولة إعطاء المريض</h2>
-          <p className="text-sm text-muted">
-            كل تجربة هنا إعطاء لمريض فعلي. أدخل الكمية وطريق الإعطاء، ثم اقرأ التقرير.
-          </p>
+    <div className="flex flex-col gap-3">
+      {/* One card, one screen. */}
+      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-card p-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="text-base font-semibold">إعطاء المريض</h2>
+          <button
+            type="button"
+            className="text-xs font-medium text-muted underline underline-offset-4"
+            onClick={() => {
+              setIngredients(EXAMPLE);
+              setRoute("oral");
+              setStandard("نشرة الدواء");
+              setPatient({ age: "30", weightKg: "70", conditions: "" });
+              setNote("");
+            }}
+          >
+            مثال
+          </button>
         </div>
 
-        {/* 1) Substances + mandatory dose */}
+        {/* Substances: one tight row each; unit sits inside the quantity box. */}
         <div className="flex flex-col gap-2">
           {ingredients.map((item, index) => (
-            <div key={index} className="flex items-end gap-2">
-              <span className="mb-1 grid size-9 shrink-0 place-items-center rounded-xl bg-herb-soft text-sm font-semibold text-herb tabular-nums">
-                {index + 1}
-              </span>
-              <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs font-medium text-muted">
-                المادة
+            <div key={index} className="flex min-w-0 items-center gap-1.5">
+              <input
+                className={`${fieldClass} min-w-0 flex-1`}
+                dir="auto"
+                aria-label={`المادة ${index + 1}`}
+                placeholder={index === 0 ? "المادة أو الدواء" : index === 1 ? "المادة الثانية" : "مادة أخرى"}
+                value={item.name}
+                autoComplete="off"
+                spellCheck={false}
+                onChange={(event) => updateIngredient(index, { name: event.target.value })}
+              />
+              <div className="flex w-[6.5rem] shrink-0 overflow-hidden rounded-xl border border-line bg-card">
                 <input
-                  className={fieldClass}
-                  dir="auto"
-                  aria-label={`المادة ${index + 1}`}
-                  placeholder={index === 0 ? "ميترونيدازول" : index === 1 ? "ميبندازول" : "مادة أخرى"}
-                  value={item.name}
-                  autoComplete="off"
-                  spellCheck={false}
-                  onChange={(event) => updateIngredient(index, { name: event.target.value })}
-                />
-              </label>
-              <label className="flex w-24 flex-col gap-1 text-xs font-medium text-muted">
-                الكمية <span className="text-danger">*</span>
-                <input
-                  className={`${fieldClass} text-center tabular-nums`}
+                  className="min-w-0 flex-1 bg-transparent px-2 py-2 text-center text-base tabular-nums outline-none"
                   dir="ltr"
                   inputMode="decimal"
                   aria-label={`كمية المادة ${index + 1}`}
@@ -164,11 +169,8 @@ export function LabPanel({ seed, onNeedSettings }: { seed: HistoryItem | null; o
                   value={item.amount}
                   onChange={(event) => updateIngredient(index, { amount: event.target.value })}
                 />
-              </label>
-              <label className="flex w-20 flex-col gap-1 text-xs font-medium text-muted">
-                الوحدة
                 <select
-                  className={fieldClass}
+                  className="shrink-0 border-s border-line bg-paper-deep px-1 text-xs font-medium outline-none"
                   aria-label={`وحدة المادة ${index + 1}`}
                   value={item.unit}
                   onChange={(event) =>
@@ -181,10 +183,10 @@ export function LabPanel({ seed, onNeedSettings }: { seed: HistoryItem | null; o
                     </option>
                   ))}
                 </select>
-              </label>
+              </div>
               <button
                 type="button"
-                className="mb-1 grid size-11 shrink-0 place-items-center rounded-xl border border-line text-muted disabled:opacity-40"
+                className="grid size-9 shrink-0 place-items-center rounded-lg text-muted disabled:opacity-30"
                 aria-label={`حذف المادة ${index + 1}`}
                 disabled={ingredients.length <= 2}
                 onClick={() => setIngredients((current) => current.filter((_, i) => i !== index))}
@@ -195,92 +197,76 @@ export function LabPanel({ seed, onNeedSettings }: { seed: HistoryItem | null; o
           ))}
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        {ingredients.length < MAX ? (
           <button
             type="button"
-            className={quietBtn}
-            disabled={ingredients.length >= MAX}
+            className="-mt-1 flex items-center gap-1 self-start text-xs font-medium text-herb"
             onClick={() => setIngredients((current) => [...current, emptyIngredient()])}
           >
-            <Plus className="size-4" />
-            أضف مادة
+            <Plus className="size-3.5" />
+            مادة أخرى
           </button>
+        ) : null}
+
+        {/* Route: a compact strip, not a dropdown window. */}
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="طريق الإعطاء">
+          {ROUTES.map((item) => (
+            <button
+              key={item}
+              type="button"
+              aria-pressed={route === item}
+              className={
+                route === item
+                  ? "rounded-full bg-herb px-3 py-1.5 text-xs font-semibold text-paper"
+                  : "rounded-full border border-line px-3 py-1.5 text-xs font-medium text-ink"
+              }
+              onClick={() => setRoute(item)}
+            >
+              {ROUTE_LABEL[item]}
+            </button>
+          ))}
+        </div>
+
+        {/* Reference standard + patient, one dense line each. */}
+        <input
+          className={fieldClass}
+          dir="auto"
+          aria-label="المرجع أو المعيار"
+          placeholder="المعيار المرجعي (نشرة الدواء / BNF / Lexicomp)"
+          value={standard}
+          onChange={(event) => setStandard(event.target.value)}
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            className={`${fieldClass} min-w-0 flex-1 basis-20 text-center tabular-nums`}
+            dir="ltr"
+            inputMode="numeric"
+            aria-label="عمر المريض"
+            placeholder="عمر"
+            value={patient.age}
+            onChange={(event) => setPatient({ ...patient, age: event.target.value })}
+          />
+          <input
+            className={`${fieldClass} min-w-0 flex-1 basis-20 text-center tabular-nums`}
+            dir="ltr"
+            inputMode="decimal"
+            aria-label="وزن المريض"
+            placeholder="وزن"
+            value={patient.weightKg}
+            onChange={(event) => setPatient({ ...patient, weightKg: event.target.value })}
+          />
           <button
             type="button"
-            className={quietBtn}
-            onClick={() => {
-              setIngredients(EXAMPLE);
-              setRoute("oral");
-              setStandard("نشرة الدواء");
-              setPatient({ age: "30", weightKg: "70", conditions: "" });
-              setNote("");
-            }}
+            className="shrink-0 rounded-lg border border-line px-3 py-2 text-xs font-medium text-muted"
+            aria-expanded={more}
+            onClick={() => setMore((value) => !value)}
           >
-            مثال: ميترونيدازول + ميبندازول
+            {more ? "إخفاء" : "حالات"}
           </button>
         </div>
 
-        {/* 2) Route + standard */}
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            طريق الإعطاء <span className="text-danger">*</span>
-            <select
-              className={fieldClass}
-              aria-label="طريق الإعطاء"
-              value={route}
-              onChange={(event) => setRoute(event.target.value as Route)}
-            >
-              {ROUTES.map((item) => (
-                <option key={item} value={item}>
-                  {ROUTE_LABEL[item]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            المرجع/المعيار <span className="text-danger">*</span>
-            <input
-              className={fieldClass}
-              dir="auto"
-              aria-label="المرجع أو المعيار"
-              placeholder="نشرة الدواء / BNF / Lexicomp"
-              value={standard}
-              onChange={(event) => setStandard(event.target.value)}
-            />
-          </label>
-        </div>
-
-        {/* 3) Patient context */}
-        <fieldset className="flex flex-col gap-3 rounded-xl bg-paper-deep px-3 py-3">
-          <legend className="px-1 text-sm font-semibold">بيانات المريض</legend>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-1 text-sm font-medium">
-              العمر (سنوات) <span className="text-danger">*</span>
-              <input
-                className={`${fieldClass} tabular-nums`}
-                dir="ltr"
-                inputMode="numeric"
-                aria-label="عمر المريض"
-                placeholder="30"
-                value={patient.age}
-                onChange={(event) => setPatient({ ...patient, age: event.target.value })}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-sm font-medium">
-              الوزن (كغ)
-              <input
-                className={`${fieldClass} tabular-nums`}
-                dir="ltr"
-                inputMode="decimal"
-                aria-label="وزن المريض"
-                placeholder="70"
-                value={patient.weightKg}
-                onChange={(event) => setPatient({ ...patient, weightKg: event.target.value })}
-              />
-            </label>
-          </div>
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            حالات وملاحظات طبية
+        {more ? (
+          <div className="flex flex-col gap-2">
             <input
               className={fieldClass}
               dir="auto"
@@ -289,21 +275,17 @@ export function LabPanel({ seed, onNeedSettings }: { seed: HistoryItem | null; o
               value={patient.conditions}
               onChange={(event) => setPatient({ ...patient, conditions: event.target.value })}
             />
-          </label>
-        </fieldset>
-
-        <label className="flex flex-col gap-1 text-sm font-medium" htmlFor="lab-note">
-          ملاحظة إضافية
-          <textarea
-            id="lab-note"
-            className={`${fieldClass} min-h-20 py-2`}
-            dir="auto"
-            maxLength={500}
-            placeholder="أي معلومة تؤثر على القرار"
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-          />
-        </label>
+            <textarea
+              className={`${fieldClass} min-h-16 py-2`}
+              dir="auto"
+              aria-label="ملاحظة إضافية"
+              maxLength={500}
+              placeholder="ملاحظة إضافية"
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+            />
+          </div>
+        ) : null}
 
         <button
           type="button"
@@ -312,17 +294,15 @@ export function LabPanel({ seed, onNeedSettings }: { seed: HistoryItem | null; o
           onClick={() => void run()}
         >
           {pending ? <Loader2 className="size-4 animate-spin" /> : null}
-          {pending ? "يُجرى التحقق…" : "أجرِ التحقق من الإعطاء"}
+          {pending ? "يُجرى التحقق…" : "تحقّق من الإعطاء"}
         </button>
 
         {issues.length > 0 ? (
-          <ul className="flex flex-col gap-1 rounded-xl bg-brass-soft px-3 py-2 text-sm text-ink" aria-live="polite">
-            {issues.map((issue) => (
-              <li key={issue}>• {issue}</li>
-            ))}
-          </ul>
+          <p className="text-xs leading-relaxed text-muted" aria-live="polite">
+            {issues.join(" • ")}
+          </p>
         ) : (
-          <p className="text-sm text-herb">البيانات مكتملة — سيُقيَّم الخطر على المريض بهذه الجرعات والطريق.</p>
+          <p className="text-xs text-herb">البيانات مكتملة — سيُقيَّم الخطر على المريض.</p>
         )}
 
         {error ? (
