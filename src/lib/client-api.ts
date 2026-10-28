@@ -33,7 +33,6 @@ export async function runLab(provider: ProviderConfig, input: LabInput): Promise
           kind: "lab",
           ingredients: input.ingredients,
           route: input.route,
-          standard: input.standard,
           patient: input.patient,
           note: input.note,
         },

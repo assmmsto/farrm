@@ -30,14 +30,66 @@ export function SeverityBadge({ severity }: { severity: Severity }) {
   );
 }
 
-export function RawAnswer({ content }: { content: string }) {
+/**
+ * Last-resort view when the model never produced a usable report.
+ *
+ * It must NOT dump the raw answer: free text with no headings was the exact
+ * complaint ("نص عشوائي غير مرتب"). Instead we show a clear failure notice and
+ * — if there is text at all — break it into readable, separated blocks so the
+ * pharmacist can still see what happened without trusting the layout.
+ */
+export function RawAnswer({ content, onRetry }: { content: string; onRetry?: () => void }) {
+  const blocks = toBlocks(content);
   return (
     <section className="flex flex-col gap-3 rounded-2xl border border-line bg-card p-4">
-      <h2 className="text-lg font-semibold">تعذر ترتيب التقرير</h2>
-      <p className="text-sm text-muted">هذا نص النموذج كما وصل. لا تعتمد عليه كبطاقة منظمة.</p>
-      <pre className="font-sans text-sm whitespace-pre-wrap break-words text-ink">{content}</pre>
+      <div className="rounded-xl bg-danger-soft px-3 py-2">
+        <h2 className="text-base font-semibold text-ink">لم يصلح الجواب كتقرير منظّم</h2>
+        <p className="text-sm text-pretty text-ink">
+          النموذج لم يُرجع الحقول المطلوبة، فلا يمكن اعتماد هذا الرد. أعد المحاولة أو غيّر النموذج من
+          إعداد المزوّد.
+        </p>
+      </div>
+      {onRetry ? (
+        <button
+          type="button"
+          className="inline-flex min-h-11 items-center justify-center rounded-xl bg-herb px-4 text-sm font-semibold text-card"
+          onClick={onRetry}
+        >
+          أعد المحاولة
+        </button>
+      ) : null}
+      {blocks.length > 0 ? (
+        <details className="rounded-xl bg-paper-deep px-3 py-2">
+          <summary className="cursor-pointer text-sm font-medium text-muted">
+            ما ردّ به النموذج (غير معتمد)
+          </summary>
+          <ol className="mt-2 flex flex-col gap-2">
+            {blocks.map((block, index) => (
+              <li key={index} className="rounded-lg bg-card px-3 py-2 text-sm leading-relaxed text-ink">
+                {block}
+              </li>
+            ))}
+          </ol>
+        </details>
+      ) : null}
     </section>
   );
+}
+
+/**
+ * Split unstructured model output into readable pieces: drop Markdown/fence
+ * noise, then break on paragraphs, list markers and sentence ends so nothing
+ * is ever shown as one unformatted wall of text.
+ */
+function toBlocks(content: string): string[] {
+  return content
+    .replace(/```[a-zA-Z]*\n?/g, "")
+    .replace(/^\s*[\{\}\[\]],?\s*$/gm, "")
+    .replace(/^\s*#{1,6}\s*/gm, "")
+    .replace(/"(\w+)":/g, "$1: ")
+    .split(/\n{2,}|(?:\n\s*[-*•]\s+)|(?<=[.!؟])\s+(?=[ء-يA-Z])/)
+    .map((piece) => piece.replace(/\s+/g, " ").trim())
+    .filter((piece) => piece.length > 1);
 }
 
 function Assumption({ text }: { text: string }) {

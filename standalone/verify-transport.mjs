@@ -1,4 +1,4 @@
-﻿/**
+/**
  * STRICT verification of the rewritten provider transport.
  *
  * Two servers:
@@ -218,17 +218,18 @@ async function errorText(page) {
   await page.getByRole("textbox", { name: "المادة 2", exact: true }).fill("حمض الهيدروكلوريك");
   await page.getByRole("textbox", { name: "كمية المادة 1" }).fill("500");
   await page.getByRole("textbox", { name: "كمية المادة 2" }).fill("500");
-  await page.getByRole("textbox", { name: "المرجع أو المعيار" }).fill("Lexicomp");
   await page.getByRole("textbox", { name: "عمر المريض" }).fill("30");
   await page.getByRole("textbox", { name: "وزن المريض" }).fill("70");
   await page.getByRole("button", { name: "تحقّق من الإعطاء" }).click();
-  const danger = await page
-    .getByText("خطر عالٍ")
+  // A Markdown-only answer is NOT a valid report any more: it must be rejected
+  // with a clear notice instead of being dumped as unformatted text.
+  const rejected = await page
+    .getByText("لم يصلح الجواب كتقرير منظّم")
     .first()
     .waitFor({ timeout: 30000 })
     .then(() => true)
     .catch(() => false);
-  check("native: lab run renders the interaction report", danger === true);
+  check("native: malformed model answer is rejected, not dumped", rejected === true);
   check("native: console clean", consoleErrors.length === 0, consoleErrors[0]?.slice(0, 80) ?? "");
   await page.close();
 }

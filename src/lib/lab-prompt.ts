@@ -19,7 +19,6 @@ export function buildLabPrompt(input: LabInput): string {
       (item, index) => `${index + 1}. ${oneLine(item.name)} — ${item.amount} ${item.unit}`,
     ),
     `طريق الإعطاء: ${ROUTE_LABEL[input.route]}`,
-    `المعيار المرجعي الذي طلبه الصيدلي: ${oneLine(input.standard) || "غير محدد"}`,
     "بيانات المريض:",
     `  العمر: ${input.patient.age} سنة`,
     input.patient.weightKg ? `  الوزن: ${input.patient.weightKg} كغ` : "  الوزن: غير مذكور",

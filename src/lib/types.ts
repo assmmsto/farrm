@@ -46,8 +46,6 @@ export type PatientContext = {
 export type LabInput = {
   ingredients: Ingredient[];
   route: Route;
-  /** Manufacturer's standard reference for each ingredient, e.g. "نشرة الدواء". */
-  standard: string;
   patient: PatientContext;
   note: string;
 };
@@ -90,31 +88,32 @@ export function emptyIngredient(): Ingredient {
 
 /**
  * Completeness gate. An experiment is only runnable when the patient can
- * actually be harmed by an answer: at least two named substances, a dose for
- * each, a route, a declared standard and the patient's age.
+ * actually be harmed by an answer: two named substances, a dose for each, a
+ * route, and the patient's age. Nothing else is required — extra fields that do
+ * not change the verdict are not worth the clutter.
  */
 export function labInputIssues(input: LabInput): string[] {
   const issues: string[] = [];
   const named = input.ingredients.filter((item) => item.name.trim());
 
-  if (named.length < 2) issues.push("اكتب مادتين على الأقل");
+  if (named.length < 2) issues.push("اكتب مادتين");
 
-  if (named.some((item) => !item.amount.trim())) issues.push("أدخل كمية (جرعة) لكل مادة");
+  if (named.some((item) => !item.amount.trim())) issues.push("أدخل كمية لكل مادة");
 
   if (named.some((item) => item.amount.trim() && !/^\d+(?:[.,]\d+)?$/.test(item.amount.trim()))) {
-    issues.push("الكمية يجب أن تكون رقماً فقط");
+    issues.push("الكمية رقماً فقط");
   }
 
   if (!input.route) issues.push("اختر طريق الإعطاء");
 
-  if (!input.standard.trim()) issues.push("حدّد المعيار المرجعي (نشرة الدواء أو مرجع)");
-
   if (!input.patient.age.trim()) issues.push("أدخل عمر المريض");
 
-  if (!/^\d+$/.test(input.patient.age.trim())) issues.push("العمر يجب أن يكون رقماً بالسنوات");
+  if (input.patient.age.trim() && !/^\d+$/.test(input.patient.age.trim())) {
+    issues.push("العمر بالسنوات رقماً");
+  }
 
   if (input.patient.weightKg.trim() && !/^\d+(?:[.,]\d+)?$/.test(input.patient.weightKg.trim())) {
-    issues.push("الوزن يجب أن يكون رقماً");
+    issues.push("الوزن رقماً");
   }
 
   return issues;
@@ -133,7 +132,6 @@ export function asLabInput(input: LabInput | CardInput): LabInput | null {
   return {
     ingredients,
     route: "route" in input && input.route ? input.route : "oral",
-    standard: "standard" in input && typeof input.standard === "string" ? input.standard : "",
     patient,
     note: "note" in input && typeof input.note === "string" ? input.note : "",
   };

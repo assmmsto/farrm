@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Plus, X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { LabReportView, RawAnswer } from "@/components/reports";
 import { fieldClass, primaryBtn } from "@/components/ui";
 import { runLab } from "@/lib/client-api";
@@ -43,10 +43,7 @@ export function LabPanel({ seed, onNeedSettings }: { seed: HistoryItem | null; o
     emptyIngredient(),
   ]);
   const [route, setRoute] = useState<Route>("oral");
-  const [standard, setStandard] = useState("");
   const [patient, setPatient] = useState<PatientContext>(() => emptyPatient());
-  const [note, setNote] = useState("");
-  const [more, setMore] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shown, setShown] = useState<{ input: LabInput; content: string; model: string } | null>(null);
@@ -57,16 +54,14 @@ export function LabPanel({ seed, onNeedSettings }: { seed: HistoryItem | null; o
     if (!input) return;
     setIngredients(input.ingredients);
     setRoute(input.route);
-    setStandard(input.standard);
     setPatient(input.patient);
-    setNote(input.note);
     setShown({ input, content: seed.content, model: seed.model });
     setError(null);
   }, [seed]);
 
   const draft: LabInput = useMemo(
-    () => ({ ingredients, route, standard, patient, note }),
-    [ingredients, route, standard, patient, note],
+    () => ({ ingredients, route, patient, note: "" }),
+    [ingredients, route, patient],
   );
 
   const issues = labInputIssues(draft);
@@ -94,13 +89,12 @@ export function LabPanel({ seed, onNeedSettings }: { seed: HistoryItem | null; o
         .filter((item) => item.name)
         .slice(0, MAX),
       route,
-      standard: standard.trim(),
       patient: {
         age: patient.age.trim(),
         weightKg: patient.weightKg.trim(),
-        conditions: patient.conditions.trim(),
+        conditions: "",
       },
-      note: note.trim(),
+      note: "",
     };
     setPending(true);
     setError(null);
@@ -136,9 +130,7 @@ export function LabPanel({ seed, onNeedSettings }: { seed: HistoryItem | null; o
             onClick={() => {
               setIngredients(EXAMPLE);
               setRoute("oral");
-              setStandard("نشرة الدواء");
               setPatient({ age: "30", weightKg: "70", conditions: "" });
-              setNote("");
             }}
           >
             مثال
@@ -197,17 +189,6 @@ export function LabPanel({ seed, onNeedSettings }: { seed: HistoryItem | null; o
           ))}
         </div>
 
-        {ingredients.length < MAX ? (
-          <button
-            type="button"
-            className="-mt-1 flex items-center gap-1 self-start text-xs font-medium text-herb"
-            onClick={() => setIngredients((current) => [...current, emptyIngredient()])}
-          >
-            <Plus className="size-3.5" />
-            مادة أخرى
-          </button>
-        ) : null}
-
         {/* Route: a compact strip, not a dropdown window. */}
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="طريق الإعطاء">
           {ROUTES.map((item) => (
@@ -227,15 +208,7 @@ export function LabPanel({ seed, onNeedSettings }: { seed: HistoryItem | null; o
           ))}
         </div>
 
-        {/* Reference standard + patient, one dense line each. */}
-        <input
-          className={fieldClass}
-          dir="auto"
-          aria-label="المرجع أو المعيار"
-          placeholder="المعيار المرجعي (نشرة الدواء / BNF / Lexicomp)"
-          value={standard}
-          onChange={(event) => setStandard(event.target.value)}
-        />
+        {/* Patient: age and weight only — both change the verdict. */}
         <div className="flex flex-wrap items-center gap-2">
           <input
             className={`${fieldClass} min-w-0 flex-1 basis-20 text-center tabular-nums`}
@@ -255,37 +228,7 @@ export function LabPanel({ seed, onNeedSettings }: { seed: HistoryItem | null; o
             value={patient.weightKg}
             onChange={(event) => setPatient({ ...patient, weightKg: event.target.value })}
           />
-          <button
-            type="button"
-            className="shrink-0 rounded-lg border border-line px-3 py-2 text-xs font-medium text-muted"
-            aria-expanded={more}
-            onClick={() => setMore((value) => !value)}
-          >
-            {more ? "إخفاء" : "حالات"}
-          </button>
         </div>
-
-        {more ? (
-          <div className="flex flex-col gap-2">
-            <input
-              className={fieldClass}
-              dir="auto"
-              aria-label="حالات طبية"
-              placeholder="حمل، قصور كلوي، أدوية أخرى…"
-              value={patient.conditions}
-              onChange={(event) => setPatient({ ...patient, conditions: event.target.value })}
-            />
-            <textarea
-              className={`${fieldClass} min-h-16 py-2`}
-              dir="auto"
-              aria-label="ملاحظة إضافية"
-              maxLength={500}
-              placeholder="ملاحظة إضافية"
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-            />
-          </div>
-        ) : null}
 
         <button
           type="button"
@@ -321,7 +264,7 @@ export function LabPanel({ seed, onNeedSettings }: { seed: HistoryItem | null; o
             model={shown.model}
           />
         ) : null}
-        {shown && !report ? <RawAnswer content={shown.content} /> : null}
+        {shown && !report ? <RawAnswer content={shown.content} onRetry={() => void run()} /> : null}
       </div>
     </div>
   );

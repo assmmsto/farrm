@@ -78,9 +78,12 @@ try {
   const runBtn = page.getByRole("button", { name: "تحقّق من الإعطاء" });
   check("run button disabled on empty form", await runBtn.isDisabled());
   const emptyText = await page.evaluate(() => document.body.innerText);
-  check("empty form asks for substances", emptyText.includes("اكتب مادتين على الأقل"));
-  check("missing-standard issue is listed", emptyText.includes("حدّد المعيار المرجعي"));
-  check("missing-age issue is listed", emptyText.includes("أدخل عمر المريض"));
+  check("empty form asks for substances", emptyText.includes("اكتب مادتين"));
+  check("empty form asks for age", emptyText.includes("أدخل عمر المريض"));
+  // Fields that cannot change the verdict must NOT be asked for.
+  check("no reference-standard field", !emptyText.includes("المعيار المرجعي"));
+  check("no conditions field", !emptyText.includes("حالات طبية"));
+  check("no extra-substance button", !emptyText.includes("مادة أخرى"));
 
   // 2) Fill substances only — still blocked because no dose.
   await page.getByRole("textbox", { name: "المادة 1", exact: true }).fill("ميترونيدازول");
@@ -93,12 +96,9 @@ try {
   // 3) Complete the record.
   await page.getByRole("textbox", { name: "كمية المادة 1" }).fill("500");
   await page.getByRole("textbox", { name: "كمية المادة 2" }).fill("500");
-  await page.getByRole("textbox", { name: "المرجع أو المعيار" }).fill("Lexicomp");
   await page.getByRole("textbox", { name: "عمر المريض" }).fill("30");
   await page.getByRole("textbox", { name: "وزن المريض" }).fill("70");
   // Conditions/note live behind the «حالات» toggle to keep one compact screen.
-  await page.getByRole("button", { name: "حالات", exact: true }).click();
-  await page.getByRole("textbox", { name: "حالات طبية" }).fill("لا يوجد");
   await page.waitForTimeout(200);
   check("enabled once complete", await runBtn.isEnabled());
 
@@ -112,12 +112,12 @@ try {
   const user = captured?.messages?.[1]?.content ?? "";
   const system = captured?.messages?.[0]?.content ?? "";
 
-  // 5) The model must receive doses, route, standard and patient.
+  // 5) The model must receive doses, route and patient — and no fake "standard".
   check("prompt carries dose 1", user.includes("ميترونيدازول — 500 mg"));
   check("prompt carries dose 2", user.includes("ميبندازول — 500 mg"));
   check("prompt carries route", user.includes("وريدي — بلعة"));
-  check("prompt carries standard", user.includes("Lexicomp"));
   check("prompt carries patient age/weight", user.includes("العمر: 30") && user.includes("الوزن: 70"));
+  check("prompt does not claim a reference standard", !/المعيار المرجعي|Lexicomp|BNF/.test(user));
 
   // 6) No beaker framing as a *task*: the only allowed mention is the prohibition.
   check("system forbids beaker framing", system.includes("يُمنع تماماً تقييم"));

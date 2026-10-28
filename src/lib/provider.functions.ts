@@ -24,7 +24,6 @@ const askSchema = z.object({
         .min(2)
         .max(6),
       route: z.enum(["oral", "iv_bolus", "iv_infusion", "im", "sc", "rectal", "topical"]),
-      standard: z.string().trim().min(1).max(120),
       patient: z.object({
         age: z.string().trim().min(1).max(6),
         weightKg: z.string().trim().max(8),
